@@ -7,13 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5D8DB5192D590499005FEEF9 /* o.m in Sources */ = {isa = PBXBuildFile; fileRef = 5D8DB5182D590495005FEEF9 /* o.m */; };
 		5D8DB5462D5906AA005FEEF9 /* SpotifyiOS in Frameworks */ = {isa = PBXBuildFile; productRef = 5D8DB5452D5906AA005FEEF9 /* SpotifyiOS */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		5D8DB4EE2D58FE8A005FEEF9 /* MusicHive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MusicHive.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		5D8DB5182D590495005FEEF9 /* o.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = o.m; sourceTree = "<group>"; };
 		5D8DB51A2D5904A5005FEEF9 /* MusicHive-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MusicHive-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -53,7 +51,6 @@
 		5D8DB4E52D58FE89005FEEF9 = {
 			isa = PBXGroup;
 			children = (
-				5D8DB5182D590495005FEEF9 /* o.m */,
 				5D8DB4F02D58FE8A005FEEF9 /* MusicHive */,
 				5D8DB4EF2D58FE8A005FEEF9 /* Products */,
 				5D8DB51A2D5904A5005FEEF9 /* MusicHive-Bridging-Header.h */,
@@ -147,7 +144,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5D8DB5192D590499005FEEF9 /* o.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
