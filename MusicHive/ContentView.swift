@@ -9,11 +9,13 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+import Foundation
 
 struct ContentView: View {
     @EnvironmentObject var spotifyManager: SpotifyManager
     @State private var searchResults: [TrackResult] = []
     @State private var searchQuery: String = ""
+    @State private var selectedTrack: TrackResult? // Track which musictrack that has been selected
 
     @StateObject private var mapViewModel = MapView()
 
@@ -53,20 +55,24 @@ struct ContentView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
 
                         List(searchResults, id: \.name) { track in
-                            HStack {
-                                if let imageURL = track.imageURL {
-                                    AsyncImage(url: imageURL) { image in
-                                        image.resizable()
-                                    } placeholder: {
-                                        ProgressView()
+                            Button(action: {
+                                selectedTrack = track
+                            }) {
+                                HStack {
+                                    if let imageURL = track.imageURL {
+                                        AsyncImage(url: imageURL) { image in
+                                            image.resizable()
+                                        } placeholder: {
+                                            ProgressView()
+                                        }
+                                        .frame(width: 50, height: 50)
                                     }
-                                    .frame(width: 50, height: 50)
-                                }
-                                VStack(alignment: .leading) {
-                                    Text(track.name)
-                                        .font(.headline)
-                                    Text(track.artist)
-                                        .font(.subheadline)
+                                    VStack(alignment: .leading) {
+                                        Text(track.name)
+                                            .font(.headline)
+                                        Text(track.artist)
+                                            .font(.subheadline)
+                                    }
                                 }
                             }
                         }
@@ -81,14 +87,12 @@ struct ContentView: View {
                 // Map View (Updated)
                 NavigationView {
                     VStack {
-                        Text("Map Placeholder")
+                        Text("Map")
                             .font(.largeTitle)
                             .padding()
-                        
                         // Add a Map view here
-                        MapViewRepresentable(region: $mapViewModel.region, mapViewModel: mapViewModel)
-                            .frame(height: 300) // Adjust the size of the map
-                        
+                        MapViewRepresentable(region: $mapViewModel.region, mapViewModel: mapViewModel, selectedTrack: $selectedTrack)
+                            .frame(height: 300)
                         Spacer()
                     }
                     .navigationTitle("Map")
@@ -114,84 +118,6 @@ struct ContentView: View {
         }
     }
 }
-
-
-class MapView: NSObject, ObservableObject, CLLocationManagerDelegate {
-    @Published var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 59.322665376, longitude: 18.069666388), // Stockholm
-        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-    )
-    @Published var userLocation: CLLocationCoordinate2D?
-    @Published var annotations: [MKPointAnnotation] = [] // List for markers
-
-    private var locationManager = CLLocationManager()
-
-    override init() {
-        super.init()
-        locationManager.delegate = self
-        locationManager.requestWhenInUseAuthorization()
-    }
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
-        userLocation = location.coordinate
-        region.center = location.coordinate
-    }
-}
-
-struct MapViewRepresentable: UIViewRepresentable {
-    @Binding var region: MKCoordinateRegion
-    @ObservedObject var mapViewModel: MapView
-
-    class Coordinator: NSObject, MKMapViewDelegate {
-        var parent: MapViewRepresentable
-
-        init(parent: MapViewRepresentable) {
-            self.parent = parent
-        }
-
-        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-            parent.region = mapView.region
-        }
-
-        @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-            guard gesture.state == .began else { return }
-            let mapView = gesture.view as! MKMapView
-            let touchPoint = gesture.location(in: mapView)
-            let coordinate = mapView.convert(touchPoint, toCoordinateFrom: mapView)
-
-            let annotation = MKPointAnnotation()
-            annotation.coordinate = coordinate
-            annotation.title = "MusicTrack"
-
-            DispatchQueue.main.async {
-                self.parent.mapViewModel.annotations.append(annotation)
-            }
-        }
-    }
-
-    func makeCoordinator() -> Coordinator {
-        return Coordinator(parent: self)
-    }
-
-    func makeUIView(context: Context) -> MKMapView {
-        let mapView = MKMapView()
-        mapView.delegate = context.coordinator
-        mapView.showsUserLocation = true
-
-        let longPressGesture = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
-        mapView.addGestureRecognizer(longPressGesture)
-
-        return mapView
-    }
-
-    func updateUIView(_ uiView: MKMapView, context: Context) {
-        uiView.removeAnnotations(uiView.annotations)
-        uiView.addAnnotations(mapViewModel.annotations)
-        uiView.setRegion(region, animated: true)
-    }
-}
-
 
 struct ProfileButton: View {
     var body: some View {
@@ -220,8 +146,85 @@ struct ProfileView: View {
     }
 }
 
-#Preview {
-    // Previews the ContentView with the SpotifyManager injected into the environment
-    ContentView()
-        .environmentObject(SpotifyManager()) // Preview SpotifyManager
+
+
+
+class MapView: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 59.322665376, longitude: 18.069666388),
+        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+    )
+    @Published var annotations: [MKPointAnnotation] = []
+    
+    private var locationManager = CLLocationManager()
+
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        region.center = location.coordinate
+    }
+}
+
+
+struct MapViewRepresentable: UIViewRepresentable {
+    @Binding var region: MKCoordinateRegion
+    @ObservedObject var mapViewModel: MapView
+    @Binding var selectedTrack: TrackResult?
+
+    class Coordinator: NSObject, MKMapViewDelegate {
+        var parent: MapViewRepresentable
+
+        init(parent: MapViewRepresentable) {
+            self.parent = parent
+        }
+
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            parent.region = mapView.region
+        }
+
+        @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+            guard gesture.state == .began else { return }
+            let mapView = gesture.view as! MKMapView
+            let touchPoint = gesture.location(in: mapView)
+            let coordinate = mapView.convert(touchPoint, toCoordinateFrom: mapView)
+
+            guard let track = parent.selectedTrack else { return }
+
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = coordinate
+            annotation.title = track.name
+            annotation.subtitle = track.artist
+            
+            DispatchQueue.main.async {
+                self.parent.mapViewModel.annotations.append(annotation)
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        return Coordinator(parent: self)
+    }
+    
+    func makeUIView(context: Context) -> MKMapView {
+        let mapView = MKMapView()
+        mapView.delegate = context.coordinator
+        mapView.showsUserLocation = true
+
+        let longPressGesture = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
+        mapView.addGestureRecognizer(longPressGesture)
+
+        return mapView
+    }
+
+    func updateUIView(_ uiView: MKMapView, context: Context) {
+        uiView.removeAnnotations(uiView.annotations)
+        uiView.addAnnotations(mapViewModel.annotations)
+        uiView.setRegion(region, animated: true)
+    }
 }
