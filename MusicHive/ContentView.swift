@@ -119,42 +119,29 @@ struct ContentView: View {
 class MapView: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 59.322665376, longitude: 18.069666388), // Stockholm
-        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05) // Adjust zoom level
+        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
     @Published var userLocation: CLLocationCoordinate2D?
+    @Published var annotations: [MKPointAnnotation] = [] // List for markers
+
     private var locationManager = CLLocationManager()
 
     override init() {
         super.init()
         locationManager.delegate = self
-        locationManager.requestWhenInUseAuthorization() // Ask permissions to use geolocation
-    }
-
-    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-        if status == .authorizedWhenInUse || status == .authorizedAlways {
-            locationManager.startUpdatingLocation() // Start location updates when authorized
-        } else {
-            print("Location permission not granted")
-        }
+        locationManager.requestWhenInUseAuthorization()
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        print("Updated location: \(location.coordinate)") // Log the location for debugging
         userLocation = location.coordinate
-
-        // Update map region based on the new location
         region.center = location.coordinate
-    }
-
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Failed to find user's location: \(error.localizedDescription)")
     }
 }
 
 struct MapViewRepresentable: UIViewRepresentable {
     @Binding var region: MKCoordinateRegion
-    var mapViewModel: MapView
+    @ObservedObject var mapViewModel: MapView
 
     class Coordinator: NSObject, MKMapViewDelegate {
         var parent: MapViewRepresentable
@@ -166,6 +153,21 @@ struct MapViewRepresentable: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
             parent.region = mapView.region
         }
+
+        @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+            guard gesture.state == .began else { return }
+            let mapView = gesture.view as! MKMapView
+            let touchPoint = gesture.location(in: mapView)
+            let coordinate = mapView.convert(touchPoint, toCoordinateFrom: mapView)
+
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = coordinate
+            annotation.title = "MusicTrack"
+
+            DispatchQueue.main.async {
+                self.parent.mapViewModel.annotations.append(annotation)
+            }
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -175,29 +177,21 @@ struct MapViewRepresentable: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
         mapView.delegate = context.coordinator
+        mapView.showsUserLocation = true
 
-        // Enable location tracking and show the blue dot
-        mapView.showsUserLocation = true // This will show the blue dot
-        mapView.userTrackingMode = .none // Do not follow
-        mapView.isRotateEnabled = true
-        mapView.isScrollEnabled = true
-        mapView.isZoomEnabled = true
+        let longPressGesture = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
+        mapView.addGestureRecognizer(longPressGesture)
 
         return mapView
     }
 
     func updateUIView(_ uiView: MKMapView, context: Context) {
-        // If user location is available, update map
-        if let userLocation = mapViewModel.userLocation {
-            uiView.setRegion(MKCoordinateRegion(
-                center: userLocation,
-                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-            ), animated: true)
-        } else {
-            uiView.setRegion(region, animated: true) // Fallback if user location doesn't exist
-        }
+        uiView.removeAnnotations(uiView.annotations)
+        uiView.addAnnotations(mapViewModel.annotations)
+        uiView.setRegion(region, animated: true)
     }
 }
+
 
 struct ProfileButton: View {
     var body: some View {
