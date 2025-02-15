@@ -39,6 +39,7 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate {
     var appRemote: SPTAppRemote!
     // Access token used to authenticate and authorize requests to Spotify's Web API
     var accessToken: String?
+    @Published var isAuthenticated: Bool = false
 
     override init() {
         super.init()
@@ -84,6 +85,7 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate {
             // Store the access token for future use
             appRemote.connectionParameters.accessToken = token
             self.accessToken = token
+            self.isAuthenticated = true
             print("Access token received: \(token)")
         } else if let errorDescription = parameters?[SPTAppRemoteErrorDescriptionKey] {
             // Handle error if authentication fails
