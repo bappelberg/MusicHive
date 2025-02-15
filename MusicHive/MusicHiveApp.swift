@@ -27,6 +27,13 @@ struct MusicHiveApp: App {
     }
 }
 
+// Struct to represent a track result with name, artist, and image URL
+struct TrackResult {
+    let name: String
+    let artist: String
+    let imageURL: URL?
+}
+
 class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate {
     // AppRemote object to communicate with Spotify's app via Spotify iOS SDK
     var appRemote: SPTAppRemote!
@@ -128,7 +135,7 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate {
 
 // Extension to add Spotify search functionality
 extension SpotifyManager {
-    func searchTracks(query: String, completion: @escaping ([String]?, Error?) -> Void) {
+    func searchTracks(query: String, completion: @escaping ([TrackResult]?, Error?) -> Void) {
         // Log the search query
         print("Searching for tracks with query: \(query)")
 
@@ -182,12 +189,28 @@ extension SpotifyManager {
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                     print("Received JSON response: \(json)")
 
-                    // Check if tracks are found in the response and extract their names
+                    // Check if tracks are found in the response and extract their names, artists, and image URLs
                     if let tracks = json["tracks"] as? [String: Any],
                        let items = tracks["items"] as? [[String: Any]] {
-                        let trackNames = items.compactMap { $0["name"] as? String }
-                        print("Found tracks: \(trackNames)")
-                        completion(trackNames, nil)
+                        var trackResults: [TrackResult] = []
+
+                        for item in items {
+                            if let name = item["name"] as? String,
+                               let artists = item["artists"] as? [[String: Any]],
+                               let firstArtist = artists.first,
+                               let artistName = firstArtist["name"] as? String,
+                               let album = item["album"] as? [String: Any],
+                               let images = album["images"] as? [[String: Any]],
+                               let firstImage = images.first,
+                               let imageURLString = firstImage["url"] as? String,
+                               let imageURL = URL(string: imageURLString) {
+                                let trackResult = TrackResult(name: name, artist: artistName, imageURL: imageURL)
+                                trackResults.append(trackResult)
+                            }
+                        }
+
+                        print("Found tracks: \(trackResults)")
+                        completion(trackResults, nil)
                     } else {
                         print("Error: Unexpected JSON structure or no tracks found.")
                         completion(nil, NSError(domain: "SpotifyManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected JSON structure or no tracks found."]))
