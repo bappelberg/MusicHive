@@ -1,0 +1,7 @@
+//
+//  Config.xcconfig
+//  MusicHive
+//
+//  Created by bappelberg on 2025-02-15.
+//
+SPOTIFY_CLIENT_ID = 9cd831eb0b804248951e9e35867b766c
