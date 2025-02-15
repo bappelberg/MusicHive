@@ -14,52 +14,114 @@ struct ContentView: View {
     @State private var searchQuery: String = ""
 
     var body: some View {
-        VStack {
-            // Button to authorize with Spotify
-            Button(action: {
-                spotifyManager.authorize() // Trigger Spotify authorization process
-            }) {
-                Text("Authorize with Spotify")
-                    .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+        TabView {
+            // Home View
+            NavigationView {
+                VStack {
+                    // Button to authorize with Spotify
+                    Button(action: {
+                        spotifyManager.authorize() // Trigger Spotify authorization process
+                    }) {
+                        Text("Authorize with Spotify")
+                            .padding()
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    Spacer()
+                }
+                .navigationTitle("Home")
+                .navigationBarItems(leading: ProfileButton())
+            }
+            .tabItem {
+                Label("Home", systemImage: "house")
             }
 
-            // Text field to input search query
-            TextField("Search for tracks", text: $searchQuery, onCommit: {
-                spotifyManager.searchTracks(query: searchQuery) { results, error in
-                    if let results = results {
-                        self.searchResults = results
-                    } else if let error = error {
-                        print("Search error: \(error.localizedDescription)")
-                    }
-                }
-            })
-            .padding()
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            // List with search result
-            List(searchResults, id: \.name) { track in
-                HStack {
-                    if let imageURL = track.imageURL {
-                        AsyncImage(url: imageURL) { image in
-                            image.resizable()
-                        } placeholder: {
-                            ProgressView()
+            // Search View
+            NavigationView {
+                VStack {
+                    // Text field to input search query
+                    TextField("Search for tracks", text: $searchQuery, onCommit: {
+                        spotifyManager.searchTracks(query: searchQuery) { results, error in
+                            if let results = results {
+                                self.searchResults = results
+                            } else if let error = error {
+                                print("Search error: \(error.localizedDescription)")
+                            }
                         }
-                        .frame(width: 50, height: 50)
-                    }
-                    VStack(alignment: .leading) {
-                        Text(track.name)
-                            .font(.headline)
-                        Text(track.artist)
-                            .font(.subheadline)
+                    })
+                    .padding()
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                    // List with search result
+                    List(searchResults, id: \.name) { track in
+                        HStack {
+                            if let imageURL = track.imageURL {
+                                AsyncImage(url: imageURL) { image in
+                                    image.resizable()
+                                } placeholder: {
+                                    ProgressView()
+                                }
+                                .frame(width: 50, height: 50)
+                            }
+                            VStack(alignment: .leading) {
+                                Text(track.name)
+                                    .font(.headline)
+                                Text(track.artist)
+                                    .font(.subheadline)
+                            }
+                        }
                     }
                 }
+                .navigationTitle("Search")
+                .navigationBarItems(leading: ProfileButton())
+            }
+            .tabItem {
+                Label("Search", systemImage: "magnifyingglass")
+            }
+
+            // Map View (Placeholder)
+            NavigationView {
+                VStack {
+                    Text("Map Placeholder")
+                        .font(.largeTitle)
+                        .padding()
+                    Spacer()
+                }
+                .navigationTitle("Map")
+                .navigationBarItems(leading: ProfileButton())
+            }
+            .tabItem {
+                Label("Map", systemImage: "map")
             }
         }
-        .padding()
+    }
+}
+
+struct ProfileButton: View {
+    var body: some View {
+        NavigationLink(destination: ProfileView()) {
+            Circle()
+                .frame(width: 44, height: 44)
+                .foregroundColor(.blue)
+                .overlay(
+                    Text("P")
+                        .foregroundColor(.white)
+                        .font(.headline)
+                )
+        }
+    }
+}
+
+struct ProfileView: View {
+    var body: some View {
+        VStack {
+            Text("Profile Page")
+                .font(.largeTitle)
+                .padding()
+            Spacer()
+        }
+        .navigationTitle("Profile")
     }
 }
 
