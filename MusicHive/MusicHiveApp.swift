@@ -62,7 +62,7 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate {
     func authorize() {
         // Starts the authorization process and attempts to play a track
         print("Attempting to authorize Spotify...")
-        self.appRemote.authorizeAndPlayURI("spotify:track:69bp2EbF7Q2rqc5N3ylezZ") { spotifyInstalled in
+        self.appRemote.authorizeAndPlayURI("spotify:track:7tOcPDj3vyopZ404pY6UuP") { spotifyInstalled in
             // If Spotify is not installed, redirect to App Store
             if !spotifyInstalled {
                 print("Spotify is not installed on the device. Redirecting to App Store...")
